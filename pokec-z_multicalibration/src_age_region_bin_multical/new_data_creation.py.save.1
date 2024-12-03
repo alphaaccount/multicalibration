@@ -1,0 +1,40 @@
+import numpy as np
+import pandas as pd
+
+M = 67796
+from scipy.sparse import csr_matrix
+from scipy.sparse import lil_matrix
+adj_mtx = np.zeros((M,M), dtype=int)
+# load the adjacency matrix of size MxM of training or testing set
+
+print('loading data ...')
+with open('pokec-z_edge.csv', 'r') as fin:
+    lines = fin.readlines()
+    idx = 0
+    for line in lines:
+        if idx == 0:
+            idx += 1
+            continue
+        eachline = line.strip().split(',')
+        scr_node = int(eachline[0])
+        dst_node = int(eachline[1])
+        weight = float(eachline[2])
+        adj_mtx[scr_node, dst_node] = weight
+        adj_mtx[dst_node, scr_node] = weight
+        idx += 1
+
+
+#again repeating what I said first I will do a 90-10 split
+#then do that 90 10 grouping thing then problem is negative 
+#edges will be much more, then replicate 
+
+
+# these pairs need to be written in a file
+
+marked_pos = np.zeros((M,M), dtype=int)
+marked_neg = np.zeros((M,M), dtype=int)
+
+for i in range(M):
+  for j in range(M):
+
+

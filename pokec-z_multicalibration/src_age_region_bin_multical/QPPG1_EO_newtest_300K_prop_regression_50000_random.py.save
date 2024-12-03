@@ -1,0 +1,181 @@
+import numpy as np
+import pandas as pd
+import pulp as p 
+import math
+import random
+import cvxpy as cp
+import networkx as nx
+from scipy.optimize import minimize
+from scipy.optimize import LinearConstraint
+import pickle as pk
+from sklearn.metrics import roc_curve, auc, roc_auc_score, f1_score, accuracy_score, precision_score, average_precision_score, recall_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression
+
+def loss(z):
+    return sum((z-b)**2.0)
+
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def dcg_at_k(r, k):
+    r = np.asfarray(r)[:k]
+    if r.size != k:
+        raise ValueError('Ranking List length < k')    
+    return np.sum((2**r - 1) / np.log2(np.arange(2, r.size + 2)))
+
+
+def ndcg_at_k(r, k):
+    sort_r = sorted(r,reverse = True)
+    idcg = dcg_at_k(sort_r, k)
+    if not idcg:
+        #print('.', end=' ')
+        return 0.
+    a = dcg_at_k(r,k)
+    #print("dcg of node is", a)
+    return dcg_at_k(r, k) / idcg
+
+
+
+
+
+def QPG_EO(data,adj_mtx, beta_avg, t):     #here we are taking two sensitive attrib # make the data here  
+    #data_initial = pd.read_csv('test_pairs', sep=',')
+    m = 40 # total 40 groups are there
+    #n = len(data_initial)
+    M = adj_mtx.shape[0]
+    '''
+    present = np.zeros((M,M))
+    file = open("test_pairs_final","w+")
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if present[x,y]==0 and present[y,x]==0:
+        present[x,y]=1
+        present[y,x]=1
+        file.write(str(x)+','+str(y)+'\n')
+
+    file.close()
+    print("Original number of pairs=", n)
+    
+
+
+    data_initial = pd.read_csv('test_pairs_final', sep=',')
+    n = len(data_initial)
+    print("Old number of pairs=", n)
+    total = 0
+    #file = open("test_pairs_final","w+")
+    file = open("test_pairs_final2", "w+")
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if adj_mtx[x,y] > 0:
+        file.write(str(x)+','+str(y)+'\n')
+        total = total + 1
+
+
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if adj_mtx[x,y] == 0 and total < 1000001:
+        file.write(str(x)+','+str(y)+'\n')
+        total = total + 1
+
+    file.close()
+    '''
+    df1 = pd.read_csv('test_pos_final.txt', sep=',', header=None)
+    df2 = pd.read_csv('test_neg_final.txt', sep=',', header=None)
+    present = np.zeros((M,M), dtype=int)
+
+    for i in range(len(df2)):
+      x = df2.iloc[i,0]
+      y = df2.iloc[i,1]
+      present[x,y] = 1
+      present[y,x] = 1
+    for i in range(M):
+      present[i,i] = 1
+    N = 1000000 - 2*len(df2)
+    test_neg_more = []
+
+    for i in range(N):
+      x = random.randrange(0,M)
+      y = random.randrange(0,M)
+      if(present[x,y]==0 and adj_mtx[x,y]==0):
+        test_neg_more.append((x,y))
+        present[x,y] = 1
+        present[y,x] = 1
+    df3 = pd.DataFrame(test_neg_more)
+    
+    data = pd.concat([df1,df2,df3], ignore_index=True)
+    #####   DO SOME PREPROESSING HERE SO THAT RANDOM K PAIRS ARE AT THE TOP OF THE DATA ##############
+    index_list = []
+    non_index_list = []
+    index = random.sample(range(len(data)), 10000)
+    for i in range(len(data)):
+      x = int(data.iloc[i,0])
+      y = int(data.iloc[i,1])
+      if i in index:
+        index_list.append([x,y])
+      else:
+        non_index_list.append([x,y])
+    dataf1 = pd.DataFrame(index_list)
+    dataf2 = pd.DataFrame(non_index_list)
+    data = pd.concat([dataf1, dataf2], ignore_index=True)
+    ##################################################################################################
+    data_old = data
+    l = []
+    b_old = []
+    graph_embedding = pk.load(open("../../../../UGE/UGE-Unbiased-Graph-Embedding/embeddings/pokec-z_gat_entropy_0.01_800_embedding.bin", 'rb'))
+    embedding_df = pd.DataFrame(graph_embedding)
+    embedding_np = embedding_df.to_numpy()
+    print(embedding_np.shape)
+    n = len(data)
+    print(n)
+    n_old = n
+    for i in range(len(data)):
+      x = int(data.iloc[i,0])
+      y = int(data.iloc[i,1])
+      l.append(np.concatenate([embedding_np[x],embedding_np[y]], axis=0))
+      b_old.append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+
+    emb = np.array(l)
+    b_old = np.array(b_old)
+
+    c1_old = []
+    for i in range(n):
+      if(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t):
+        c1_old.append(1)
+      else:
+        c1_old.append(0)
+    c1_old = np.array(c1_old)
+
+    c_old = []
+    for i in range(n):
+      x = int(data.iloc[i,0])
+      y = int(data.iloc[i,1])
+      if(adj_mtx[x,y] > 0):
+        c_old.append(1)
+      else:
+        c_old.append(0)
+
+    c_old = np.array(c_old)
+
+    data = data.iloc[:10000]
+    data_mod = data
+    n = len(data)
+    print(n)
+    print("New number of pairs=", n)
+    list_of_edges = []
+    for i in range(n):
+      x = data.iloc[i,0]
+      y = data.iloc[i,1]
+      if(adj_mtx[x,y] > 0):
+        list_of_edges.append((x,y))
+
+    g = nx.Graph()
+    g.add_edges_from(list_of_edges)
+    print("Number of Connected Components", nx.number_connected_components(g))
+    print("connected", nx.is_connected(g))
+    data1 = np.zeros((m,n))
+

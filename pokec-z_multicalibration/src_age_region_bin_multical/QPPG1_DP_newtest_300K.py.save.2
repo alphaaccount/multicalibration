@@ -1,0 +1,377 @@
+import numpy as np
+import pandas as pd
+import pulp as p 
+import math
+import random
+import cvxpy as cp
+import networkx as nx
+from scipy.optimize import minimize
+from scipy.optimize import LinearConstraint
+import pickle as pk
+from sklearn.metrics import roc_curve, auc, roc_auc_score, f1_score, accuracy_score, precision_score, average_precision_score, recall_score
+import time
+
+def loss(z):
+    return sum((z-b)**2.0)
+
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def dcg_at_k(r, k):
+    r = np.asfarray(r)[:k]
+    if r.size != k:
+        raise ValueError('Ranking List length < k')    
+    return np.sum((2**r - 1) / np.log2(np.arange(2, r.size + 2)))
+
+
+def ndcg_at_k(r, k):
+    sort_r = sorted(r,reverse = True)
+    idcg = dcg_at_k(sort_r, k)
+    if not idcg:
+        #print('.', end=' ')
+        return 0.
+    a = dcg_at_k(r,k)
+    #print("dcg of node is", a)
+    return dcg_at_k(r, k) / idcg
+
+
+
+
+
+def QPG_EO(data,adj_mtx, beta_avg, t):     #here we are taking two sensitive attrib # make the data here  
+    #data_initial = pd.read_csv('test_pairs', sep=',')
+    m = 40 # total 40 groups are there
+    #n = len(data_initial)
+    M = adj_mtx.shape[0]
+    '''
+    present = np.zeros((M,M))
+    file = open("test_pairs_final","w+")
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if present[x,y]==0 and present[y,x]==0:
+        present[x,y]=1
+        present[y,x]=1
+        file.write(str(x)+','+str(y)+'\n')
+
+    file.close()
+    print("Original number of pairs=", n)
+    
+
+
+    data_initial = pd.read_csv('test_pairs_final', sep=',')
+    n = len(data_initial)
+    print("Old number of pairs=", n)
+    total = 0
+    #file = open("test_pairs_final","w+")
+    file = open("test_pairs_final2", "w+")
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if adj_mtx[x,y] > 0:
+        file.write(str(x)+','+str(y)+'\n')
+        total = total + 1
+
+
+    for i in range(len(data_initial)):
+      x = int(data_initial.iloc[i,0])
+      y = int(data_initial.iloc[i,1])
+      if adj_mtx[x,y] == 0 and total < 1000001:
+        file.write(str(x)+','+str(y)+'\n')
+        total = total + 1
+
+    file.close()
+    
+    df1 = pd.read_csv('test_pos_final.txt', sep=',', header=None)
+    df2 = pd.read_csv('test_neg_final.txt', sep=',', header=None)
+    present = np.zeros((M,M), dtype=int)
+
+    for i in range(len(df2)):
+      x = df2.iloc[i,0]
+      y = df2.iloc[i,1]
+      present[x,y] = 1
+      present[y,x] = 1
+    for i in range(M):
+      present[i,i] = 1
+    N = 1000000 - 2*len(df2)
+    test_neg_more = []
+
+    for i in range(N):
+      x = random.randrange(0,M)
+      y = random.randrange(0,M)
+      if(present[x,y]==0 and adj_mtx[x,y]==0):
+        test_neg_more.append((x,y))
+        present[x,y] = 1
+        present[y,x] = 1
+    df3 = pd.DataFrame(test_neg_more)
+
+    data = pd.concat([df1,df2,df3], ignore_index=True)
+    '''
+    data = pd.read_csv('final_data.csv')
+    n = len(data)
+    print("New number of pairs=", n)
+
+    data1 = np.zeros((m,n))
+
+    sizes = np.zeros(m, dtype=int)
+    sizes_edges = np.zeros(m, dtype=int)
+    sizes_edges_actual = np.zeros(m, dtype=int)
+    adamic_adar = np.zeros(n, dtype=float)
+    scores = [ [] for _ in range(m) ]
+    a_adar_gr = np.zeros(m)
+
+    nbr = np.zeros(M, dtype=int)
+
+
+    '''
+    for i in range(M):
+      for j in range(M):
+        if adj_mtx[i,j] > 0:
+          nbr[i] = nbr[i] + 1
+
+   
+    for i in range(n):
+      u = int(data.iloc[i,0])
+      v = int(data.iloc[i,3])
+      for j in list(set(G[u]) & set(G[v])):
+        adamic_adar[i] = adamic_adar[i] + 1/math.log2(nbr[j])
+    '''
+
+    graph_embedding = pk.load(open("../../../../UGE/UGE-Unbiased-Graph-Embedding/embeddings/pokec-z_gat_entropy_0.01_800_embedding.bin", 'rb'))    
+    embedding_df = pd.DataFrame(graph_embedding)
+    #embedding_df = embedding_df.rename(index=int, columns={0:"user_id"})
+    #print(embedding_df)
+    #user_ids = embedding_df['user_id']
+    #embedding_df = embedding_df.drop(['user_id'],axis=1)
+    embedding_np = embedding_df.to_numpy()
+    print(embedding_np.shape)
+
+    b = []
+    present = np.zeros((M,M))
+    X = pd.read_csv("../../../../UGE-Unbiased-Graph-Embedding/processed_data/pokec-z_node_attribute1.csv")
+    for i in range(len(data)):
+        x = int(data.iloc[i,0])
+        y = int(data.iloc[i,1])
+        b.append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+        for j in range(2):
+          for k in range(2):
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k :
+              data1[2*j+k][i] = 1
+              a_adar_gr[2*j+k] =  a_adar_gr[2*j+k] + adamic_adar[i]
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k and sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t:
+              sizes_edges[2*j+k] = sizes_edges[2*j+k]+1
+              #scores[2*j+k].append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k and adj_mtx[x, y] > 0:
+              sizes_edges_actual[2*j+k] = sizes_edges_actual[2*j+k]+1
+
+
+        for j in range(6):
+          for k in range(6):
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k :
+              data1[6*j+k+4][i] = 1   #begins at 4
+              a_adar_gr[6*j+k+4] =  a_adar_gr[6*j+k+4] + adamic_adar[i]
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k and sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t:
+              sizes_edges[6*j+k+4] = sizes_edges[6*j+k+4]+1
+              #scores[6*j+k+4].append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k and adj_mtx[x, y] > 0:
+              sizes_edges_actual[6*j+k+4] = sizes_edges_actual[6*j+k+4]+1
+    print(sizes_edges_actual)
+    max_size=0
+    for i in range(m):
+      count=0
+      for j in range(n):
+          if data1[i][j]==1:
+              count=count+1
+      if count>max_size:
+          max_size=count
+      sizes[i]=count
+    print(sizes)
+
+    #print(sizes)    
+    #print(sizes_edges/sizes)
+    edge_density = np.zeros(m)
+    for i in range(m):
+      if sizes[i]==0:
+        edge_density[i] = 0
+      else:
+        edge_density[i] = sizes_edges[i]*400000/sizes[i]
+
+    print("data is")
+    print(data1)
+    print(m,n)
+
+    group = np.zeros(n)
+    '''
+    for i in range(n):
+      for j in range(2):
+        for k in range(2):
+          if data.iloc[i,1] == j and data.iloc[i,4] == k:
+            group[i] = group[i] + edge_density[2*j+k]
+
+      for j in range(6):
+        for k in range(6):
+          if data.iloc[i,2]==j and data.iloc[i,5]==k :
+            group[i] = group[i] + edge_density[6*j+k+4]
+
+    '''
+
+    #Compute the multicalibration error here first for the unfair case 
+    #Then compute the error for the fair case with this QP or the other QP
+    #Compute both the Brier Score and also the ECE (Expected Calibration Error)
+    #We also need to look into Maximum Calibration Error
+    
+    
+
+
+    tim = []
+    indicator_all = [0] 
+    Beta = [0.8,0.9,0.7,0.6,0.5]
+    for base in Beta:
+      print("--------------This is for beta=",base,"---------------------------")
+      for indicator in indicator_all:
+        print("--------------This is for indicator=",indicator,"---------------------------")
+        gr = [ [] for _ in range(m) ]
+        #base = 0.8
+        #count = np.zeros(r, dtype=int)
+        r2 = []
+        r1 = np.random.rand()
+        for i in range(m):
+          r2.append(r1)
+
+        r1 = np.array(r2)
+        DP_list = []
+        group_size = {}
+        group_number = {}
+
+        topk = 60000
+        c2 = []
+        b = np.array(b)
+        sorted_index = np.argsort(np.argsort(b))
+        for i in range(n):
+          if(sorted_index[i] > n-topk):
+            c2.append(1)
+          else:
+            c2.append(0)
+        c2 = np.array(c2)
+
+
+        c1 = []
+        for i in range(n):
+          if(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t):
+            ng_df.to_numpy()
+    print(embedding_np.shape)
+
+    b = []
+    present = np.zeros((M,M))
+    X = pd.read_csv("../../../../UGE-Unbiased-Graph-Embedding/processed_data/pokec-z_node_attribute1.csv")
+    for i in range(len(data)):
+        x = int(data.iloc[i,0])
+        y = int(data.iloc[i,1])
+        b.append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+        for j in range(2):
+          for k in range(2):
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k :
+              data1[2*j+k][i] = 1
+              a_adar_gr[2*j+k] =  a_adar_gr[2*j+k] + adamic_adar[i]
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k and sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t:
+              sizes_edges[2*j+k] = sizes_edges[2*j+k]+1
+              #scores[2*j+k].append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+            if int(X.iloc[x,1])==j and int(X.iloc[y,1])==k and adj_mtx[x, y] > 0:
+              sizes_edges_actual[2*j+k] = sizes_edges_actual[2*j+k]+1
+
+
+        for j in range(6):
+          for k in range(6):
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k :
+              data1[6*j+k+4][i] = 1   #begins at 4
+              a_adar_gr[6*j+k+4] =  a_adar_gr[6*j+k+4] + adamic_adar[i]
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k and sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t:
+              sizes_edges[6*j+k+4] = sizes_edges[6*j+k+4]+1
+              #scores[6*j+k+4].append(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])))
+            if int(X.iloc[x,2])==j and int(X.iloc[y,2])==k and adj_mtx[x, y] > 0:
+              sizes_edges_actual[6*j+k+4] = sizes_edges_actual[6*j+k+4]+1
+    print(sizes_edges_actual)
+    max_size=0
+    for i in range(m):
+      count=0
+      for j in range(n):
+          if data1[i][j]==1:
+              count=count+1
+      if count>max_size:
+          max_size=count
+      sizes[i]=count
+    print(sizes)
+
+    #print(sizes)    
+    #print(sizes_edges/sizes)
+    edge_density = np.zeros(m)
+    for i in range(m):
+      if sizes[i]==0:
+        edge_density[i] = 0
+      else:
+        edge_density[i] = sizes_edges[i]*400000/sizes[i]
+
+    print("data is")
+    print(data1)
+    print(m,n)
+
+    group = np.zeros(n)
+    '''
+    for i in range(n):
+      for j in range(2):
+        for k in range(2):
+          if data.iloc[i,1] == j and data.iloc[i,4] == k:
+            group[i] = group[i] + edge_density[2*j+k]
+
+      for j in range(6):
+        for k in range(6):
+          if data.iloc[i,2]==j and data.iloc[i,5]==k :
+            group[i] = group[i] + edge_density[6*j+k+4]
+
+    '''
+
+    #Compute the multicalibration error here first for the unfair case 
+    #Then compute the error for the fair case with this QP or the other QP
+    #Compute both the Brier Score and also the ECE (Expected Calibration Error)
+    #We also need to look into Maximum Calibration Error
+    
+    
+
+
+    tim = []
+    indicator_all = [0] 
+    Beta = [0.8,0.9,0.7,0.6,0.5]
+    for base in Beta:
+      print("--------------This is for beta=",base,"---------------------------")
+      for indicator in indicator_all:
+        print("--------------This is for indicator=",indicator,"---------------------------")
+        gr = [ [] for _ in range(m) ]
+        #base = 0.8
+        #count = np.zeros(r, dtype=int)
+        r2 = []
+        r1 = np.random.rand()
+        for i in range(m):
+          r2.append(r1)
+
+        r1 = np.array(r2)
+        DP_list = []
+        group_size = {}
+        group_number = {}
+
+        topk = 60000
+        c2 = []
+        b = np.array(b)
+        sorted_index = np.argsort(np.argsort(b))
+        for i in range(n):
+          if(sorted_index[i] > n-topk):
+            c2.append(1)
+          else:
+            c2.append(0)
+        c2 = np.array(c2)
+
+
+        c1 = []
+        for i in range(n):
+          if(sigmoid(np.inner(embedding_np[int(data.iloc[i,0])],embedding_np[int(data.iloc[i,1])])) > t):
+            

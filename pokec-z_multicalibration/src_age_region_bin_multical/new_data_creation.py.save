@@ -1,0 +1,38 @@
+import numpy as np
+import pandas as pd
+
+M = 67796
+from scipy.sparse import csr_matrix
+from scipy.sparse import lil_matrix
+adj_mtx = np.zeros((M,M), dtype=int)
+# load the adjacency matrix of size MxM of training or testing set
+
+print('loading data ...')
+with open('pokec-z_edge.csv', 'r') as fin:
+    lines = fin.readlines()
+    idx = 0
+    for line in lines:
+        if idx == 0:
+            idx += 1
+            continue
+        eachline = line.strip().split(',')
+        scr_node = int(eachline[0])
+        dst_node = int(eachline[1])
+        weight = float(eachline[2])
+        adj_mtx[scr_node, dst_node] = weight
+        adj_mtx[dst_node, scr_node] = weight
+        idx += 1
+
+# first divide the set of edges in 10 and 90 for test and train
+# now for every node which appear in both train and test with 90% chance
+# keep only in train and with 10% chance keep only in test
+# Do the same for non-edges
+# finally ensure that botht the train pos edges and train neg edges are same
+# the list of negative edges will be much more then how to equate them 
+# two ways are there either remove edges from neg list or replicate edges in postive list
+# for make up we can try both 
+
+
+
+
+
