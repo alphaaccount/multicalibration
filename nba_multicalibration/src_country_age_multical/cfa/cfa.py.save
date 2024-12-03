@@ -1,0 +1,21 @@
+
+import ot
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+
+class ContinuousFairnessAlgorithm():
+    """
+    TODO: write doc
+    TODO: rewrite algorithm with float scores only!!
+    """
+
+    def __init__(self, rawData, groups, group_names, qual_attr, score_stepsize, thetas, regForOT, path='.', plot=False):
+        """
+        Arguments:
+            rawData {dataframe} -- contains data points as rows and features as columns
+            groups {dataframe} -- all possible groups in @rawData. One row contains manifestations
+                                  of protected attributes, hence represents a group
+            qual_attr {[str]} -- name of column that contains the scores
