@@ -12,8 +12,8 @@ Running the Code (for our proposed approach MCQP[MultiCalibration using Quadrati
 
 Embeddings: All the processed embeddings are present in the /embeddings folder. You need to change the path of the .bin files above mentioned python files while reading the embeddings. 
 
- SENSITIVE_Attributes = { pokec-z: [gender, region, AGE],
-                           pol-blog :[party],
-                           twitter:[opinion],
-                           nba:[age,country],
-                           cora:[topic]  }
+SENSITIVE_Attributes = { pokec-z: [gender, region, AGE],
+                                   pol-blog :[party],
+                                   twitter:[opinion],
+                                   nba:[age,country],
+                                   cora:[topic]  }
