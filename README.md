@@ -8,7 +8,7 @@ Running the Code (for our proposed approach MCQP[MultiCalibration using Quadrati
 ### Pokec-z : 
 (a) Run the [QPPG1_EO_newtest_300K_prop_regression_50000_random_newtestdata.py] in the [pokec-z_multicalibration/src_age_region_bin_multical] folder to run MCQP-2, (b) Run [pokec_MCQP-2.py] in the same folder to run MCQP-1.
 ### Cora: 
-Run (a) Run [QPPG1_multical.py] for MCQP-2 and (b) [QPPG1_cora_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder
+(a) Run [QPPG1_multical.py] for MCQP-2 and (b) [QPPG1_cora_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder
 ### Political Blog: 
 (a) Run [QPPG1_polblog_multical.py] for MCQP-2 and (b)   [QPPG1_polblog_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder
 ### Twitter: 
