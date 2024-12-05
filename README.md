@@ -9,7 +9,7 @@ Running the Code (for our proposed approach MCQP[MultiCalibration using Quadrati
 (a) Run the [QPPG1_EO_newtest_300K_prop_regression_50000_random_newtestdata.py] in the [pokec-z_multicalibration/src_age_region_bin_multical] folder to run MCQP-2, (b) Run [pokec_MCQP-2.py] in the same folder to run MCQP-1.
 ### Cora: 
 Run (a) Run [QPPG1_multical.py] for MCQP-2 and (b) [QPPG1_cora_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder
-## Political Blog: 
+### Political Blog: 
 (a) Run [QPPG1_polblog_multical.py] for MCQP-2 and (b)   [QPPG1_polblog_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder
 ### Twitter: 
 (a) Run [QPPG1_twitter_multical.py] for MCQP-2 and (b) [QPPG1_twitter_MCQP-2.py] for MCQP-1 in [cora_twitter_polblog_multicalibration] folder 
@@ -17,10 +17,8 @@ Run (a) Run [QPPG1_multical.py] for MCQP-2 and (b) [QPPG1_cora_MCQP-2.py] for MC
 (a) Run [QPPG1_multical.py] for MCQP-2 and (b)  [QPPG1_MCQP-2.py] for MCQP-1 in [nba_multicalibration/src_country_age_multical] folder
 
 
-Embeddings: All the processed embeddings are present in the /embeddings folder. You need to change the path of the .bin files above mentioned python files while reading the embeddings. 
+### Embeddings: 
+All the processed embeddings are present in the /embeddings folder. You need to change the path of the .bin files above mentioned python files while reading the embeddings. 
 
-SENSITIVE_Attributes = { pokec-z: [gender, region, AGE],
-                                   pol-blog :[party],
-                                   twitter:[opinion],
-                                   nba:[age,country],
-                                   cora:[topic]  }
+### SENSITIVE_Attributes 
+{ pokec-z: [gender, region, AGE], pol-blog :[party], twitter:[opinion], nba:[age,country], cora:[topic]  }
