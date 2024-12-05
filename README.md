@@ -1,6 +1,8 @@
 # MultiCalibration using Quadratic Programming (MCQP)
-## Datasets: All the data files are processed data files obtained after running a GAT model (to be used by MCQP), along with the embeddings of different baselines is available at https://drive.google.com/drive/folders/1jPuqA3_DR4dIPtwckNy7FIVzJdQ329uS?usp=share_link . All the preproccesed data files needed for model training for various datasets is available at https://drive.google.com/drive/folders/1HL8gYg2mlKdgGKwban8GAomyoa7wUqVc?usp=share_link 
+## Datasets: 
+All the data files are processed data files obtained after running a GAT model (to be used by MCQP), along with the embeddings of different baselines is available at https://drive.google.com/drive/folders/1jPuqA3_DR4dIPtwckNy7FIVzJdQ329uS?usp=share_link . All the preproccesed data files needed for model training for various datasets is available at https://drive.google.com/drive/folders/1HL8gYg2mlKdgGKwban8GAomyoa7wUqVc?usp=share_link 
 
+## Code
 Running the Code (for our proposed approach MCQP[MultiCalibration using Quadratic Programming]) for Different Datasets:
 
 1. Pokec-z : (a) Run the [QPPG1_EO_newtest_300K_prop_regression_50000_random_newtestdata.py] in the [pokec-z_multicalibration/src_age_region_bin_multical] folder to run MCQP-2.
